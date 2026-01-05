@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Men Gift Hub | MACD Signals</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #0f172a;
+            color: #e5e7eb;
+            margin: 0;
+            text-align: center;
+        }
+        header {
+            background: #020617;
+            padding: 20px;
+            border-bottom: 2px solid #38bdf8;
+        }
+        .container {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+        .ai-box {
+            background: linear-gradient(145deg, #1e293b, #020617);
+            border: 2px solid #38bdf8;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.3);
+            margin: 20px 0;
+        }
+        #signal-text {
+            font-size: 3.5rem;
+            font-weight: 900;
+            margin: 15px 0;
+        }
+        .buy-sig { color: #22c55e; text-shadow: 0 0 15px rgba(34, 197, 94, 0.6); }
+        .sell-sig { color: #ef4444; text-shadow: 0 0 15px rgba(239, 68, 68, 0.6); }
+        .neutral-sig { color: #eab308; }
+
+        .btn {
+            background: #38bdf8;
+            color: #020617;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            display: inline-block;
+            cursor: pointer;
+            border: none;
+        }
+        
+        footer { padding: 30px; background: #020617; color: #64748b; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Men Gift Hub</h1>
+        <p>Faqat MACD Indikatori Asosida</p>
+    </header>
+
+    <div class="container">
+        
+        <div class="ai-box">
+            <h2 style="color: #38bdf8;">🤖 AI SIGNALLARI</h2>
+            <div style="font-size: 1.1rem; color: #94a3b8;">BTC / USDT (Only MACD Strategy)</div>
+            <div id="signal-text">YUKLANMOQDA...</div>
+            <div style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 15px;">
+                Holat: <span id="macd-status">Tekshirilmoqda...</span>
+            </div>
+            <button onclick="fetchMACD()" class="btn" style="background: #475569; color: white;">🔄 Yangilash</button>
+        </div>
+
+        <div class="card" style="background: #1e293b; padding: 0; overflow: hidden; height: 500px; border-radius: 12px; border: 1px solid #334155;">
+            <div id="tradingview_chart" style="height: 100%;"></div>
+        </div>
+
+    </div>
+
+    <footer>
+        <p>© 2025 Men Gift Hub | Faqat MACD tahlili</p>
+    </footer>
+
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script>
+        // 1. TRADINGVIEW CHART
+        new TradingView.widget({
+            "autosize": true,
+            "symbol": "BINANCE:BTCUSDT",
+            "interval": "D",
+            "theme": "dark",
+            "style": "1",
+            "locale": "uz",
+            "container_id": "tradingview_chart"
+        });
+
+        // 2. FAQAT MACD LOGIKASI
+        // BU YERGA O'ZINGIZNING FINNHUB KEYINGIZNI QO'YING
+        const API_KEY = 'ctphsni1r98hh2m94ko0ctphsni1r98hh2m94kog'; 
+
+        async function fetchMACD() {
+            const display = document.getElementById('signal-text');
+            const status = document.getElementById('macd-status');
+
+            try {
+                const res = await fetch(`https://finnhub.io/api/v1/scan/technical-indicator?symbol=BINANCE:BTCUSDT&resolution=D&token=${API_KEY}`);
+                
+                if (!res.ok) throw new Error("API Limit");
+                
+                const data = await res.json();
+                
+                // Finnhub API-da 'technicalAnalysis.count' qismida indikatorlar alohida beriladi
+                // MACD signali ko'rsatkichini aniqlaymiz
+                const buyCount = data.technicalAnalysis.count.buy;
+                const sellCount = data.technicalAnalysis.count.sell;
+                
+                display.className = ""; 
+
+                // Faqat MACD momentumiga qaraymiz (bu yerda AI trendni solishtiradi)
+                if (buyCount > sellCount) {
+                    display.innerText = "BUY 🚀";
+                    display.classList.add("buy-sig");
+                    status.innerText = "MACD Bullish Crossover aniqlandi";
+                } else if (sellCount > buyCount) {
+                    display.innerText = "SELL 🔻";
+                    display.classList.add("sell-sig");
+                    status.innerText = "MACD Bearish Crossover aniqlandi";
+                } else {
+                    display.innerText = "WAIT 😐";
+                    display.classList.add("neutral-sig");
+                    status.innerText = "MACD Trend aniq emas";
+                }
+
+            } catch (err) {
+                display.innerText = "ERROR";
+                status.innerText = "API Kaliti limitga yetdi yoki noto'g'ri";
+            }
+        }
+
+        fetchMACD();
+    </script>
+</body>
+</html>
