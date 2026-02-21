@@ -1,195 +1,89 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Order Block & TBT Scanner</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        :root {
-            --bg: #0b0e11; --card: #1e2329; --primary: #f0b90b;
-            --buy: #2ebd85; --sell: #f6465d; --text: #eaecef; --subtext: #848e9c;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-        body { background-color: var(--bg); color: var(--text); padding: 15px; display: flex; flex-direction: column; align-items: center; }
-        .app-container { width: 100%; max-width: 480px; }
-        
-        header { padding: 20px 0; text-align: left; width: 100%; }
-        h1 { font-size: 1.4rem; color: var(--primary); }
-        .search-box { background: var(--card); padding: 12px; border-radius: 12px; display: flex; gap: 8px; margin-bottom: 15px; }
-        input { flex: 1; background: transparent; border: 1px solid #474d57; border-radius: 8px; color: white; padding: 10px; text-transform: uppercase; }
-        button { background: var(--primary); color: #000; border: none; padding: 0 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-
-        .signal-header { background: var(--card); padding: 25px; border-radius: 16px; text-align: center; margin-bottom: 15px; border-bottom: 4px solid #474d57; }
-        .signal-header.BUY { border-color: var(--buy); background: rgba(46, 189, 133, 0.1); }
-        .signal-header.SELL { border-color: var(--sell); background: rgba(246, 70, 93, 0.1); }
-        .price-main { font-size: 2.8rem; font-weight: 800; margin: 10px 0; font-variant-numeric: tabular-nums; }
-        
-        .zones-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .zone-card { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid #2b3139; }
-        .zone-card.active-buy { border-color: var(--buy); background: rgba(46, 189, 133, 0.05); }
-        .zone-card.active-sell { border-color: var(--sell); background: rgba(246, 70, 93, 0.05); }
-        
-        .label { color: var(--subtext); font-size: 0.65rem; text-transform: uppercase; margin-bottom: 4px; }
-        .val { font-size: 1rem; font-weight: 700; }
-        .val.green { color: var(--buy); }
-        .val.red { color: var(--sell); }
-
-        .hit { opacity: 0.2; text-decoration: line-through; transition: 0.5s; }
-    </style>
-</head>
-<body>
-
-<div class="app-container">
-    <header>
-        <h1>AI Order Block Scanner</h1>
-        <p class="subtitle">Live TBT & Order Block Zones</p>
-    </header>
-
-    <div class="search-box">
-        <input type="text" id="symbol" placeholder="ENSUSDT, BTCUSDT..." value="ENSUSDT">
-        <button onclick="startLiveTrack()">START</button>
-    </div>
-
-    <div id="resultView" style="display:none;">
-        <div id="sigBox" class="signal-header">
-            <div id="status" style="font-weight:900; letter-spacing:2px; font-size:0.8rem;">NEUTRAL</div>
-            <div id="mainPrice" class="price-main">$0.00</div>
-            <div id="reason" style="color:var(--subtext); font-size:0.8rem;">Waiting for price to hit Order Block...</div>
-        </div>
-
-        <div class="zones-grid">
-            <div class="zone-card" id="card-buy">
-                <div class="label">BUY ZONE (Bullish OB)</div>
-                <div id="buyVal" class="val green">--</div>
-            </div>
-            <div class="zone-card" id="card-sell">
-                <div class="label">SELL ZONE (Bearish OB)</div>
-                <div id="sellVal" class="val red">--</div>
-            </div>
-            <div class="zone-card" id="card-tp1">
-                <div class="label">TBT TARGET 1</div>
-                <div id="tp1" class="val">--</div>
-            </div>
-            <div class="zone-card" id="card-tp2">
-                <div class="label">TBT TARGET 2</div>
-                <div id="tp2" class="val">--</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    let socket = null;
-    let data = { buyMin: 0, buyMax: 0, sellMin: 0, sellMax: 0, tp1: 0, tp2: 0, tp1Hit: false, tp2Hit: false };
-
-    function startLiveTrack() {
-        const symbol = document.getElementById('symbol').value.trim().toLowerCase();
-        if(!symbol) return;
-        if(socket) socket.close();
-        document.getElementById('resultView').style.display = 'block';
-
-        socket = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol}@ticker`);
-        socket.onmessage = (event) => {
-            const raw = JSON.parse(event.data);
-            const price = parseFloat(raw.c);
-            if(data.buyMin === 0) initZones(price);
-            updateApp(price);
-        };
-    }
-
-    function initZones(price) {
-        // Defining Order Block "Boxes" (Zones) based on screenshot logic
-        data = {
-            buyMin: price * 0.975, buyMax: price * 0.985,
-            sellMin: price * 1.015, sellMax: price * 1.025,
-            tp1: price * 1.01, tp2: price * 1.03,
-            tp1Hit: false, tp2Hit: false
-        };
-        document.getElementById('buyVal').innerText = `$${data.buyMin.toFixed(2)} - $${data.buyMax.toFixed(2)}`;
-        document.getElementById('sellVal').innerText = `$${data.sellMin.toFixed(2)} - $${data.sellMax.toFixed(2)}`;
-        document.getElementById('tp1').innerText = `$${data.tp1.toFixed(2)}`;
-        document.getElementById('tp2').innerText = `$${data.tp2.toFixed(2)}`;
-    }
-
-    function updateApp(price) {
-        document.getElementById('mainPrice').innerText = "$" + price.toLocaleString(undefined, {minimumFractionDigits: 2});
-        
-        const status = document.getElementById('status');
-        const sigBox = document.getElementById('sigBox');
-        const reason = document.getElementById('reason');
-
-        // Check if Price is inside the BUY ZONE Order Block
-        if (price >= data.buyMin && price <= data.buyMax) {
-            status.innerText = "BUY";
-            sigBox.className = "signal-header BUY";
-            reason.innerText = "Inside Bullish Order Block. Potential Reversal.";
-            document.getElementById('card-buy').classList.add('active-buy');
-        } 
-        // Check if Price is inside the SELL ZONE Order Block
-        else if (price >= data.sellMin && price <= data.sellMax) {
-            status.innerText = "SELL";
-            sigBox.className = "signal-header SELL";
-            reason.innerText = "Inside Bearish Order Block. Supply found.";
-            document.getElementById('card-sell').classList.add('active-sell');
-        } 
-        else {
-            status.innerText = "NEUTRAL";
-            sigBox.className = "signal-header";
-            reason.innerText = "Scanning Market Structure...";
-            document.getElementById('card-buy').classList.remove('active-buy');
-            document.getElementById('card-sell').classList.remove('active-sell');
-        }
-
-        // TBT Target Vanishing
-        if (!data.tp1Hit && price >= data.tp1) {
-            data.tp1Hit = true;
-            document.getElementById('card-tp1').classList.add('hit');
-        }
-        if (!data.tp2Hit && price >= data.tp2) {
-            data.tp2Hit = true;
-            document.getElementById('card-tp2').classList.add('hit');
-        }
-    }
-</script>
-</body>
-                                                   </html>
-    
-<!DOCTYPE html>
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oltin Narxi - Uzbekistan</title>
+    <title>Oltin Narxi - O'zbekiston</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #0f0f0f; color: white; font-family: sans-serif; }
-        .gold-card { background: #1a1a1a; border: 1px solid #d4af37; border-radius: 12px; padding: 20px; text-align: center; }
-        .gold-text { color: #d4af37; font-weight: bold; font-size: 1.5rem; }
+        body { background-color: #0b0e11; color: #eaecef; font-family: 'Inter', sans-serif; }
+        .gold-border { border: 1px solid #d4af37; }
+        .gold-bg { background: rgba(212, 175, 55, 0.1); }
+        .gold-text { color: #d4af37; }
+        .card { background: #1e2329; border-radius: 16px; padding: 20px; transition: 0.3s; }
+        .card:hover { transform: translateY(-5px); border-color: #f0b90b; }
     </style>
 </head>
-<body class="p-6">
-    <h1 class="text-3xl font-bold text-center mb-8 text-[#d4af37]">Oltin Narxi (1g / UZS)</h1>
-    
-    <div class="grid grid-cols-2 gap-4 mb-10">
-        <div class="gold-card"><h3>999 Proba</h3><p id="p999" class="gold-text">Yuklanmoqda...</p></div>
-        <div class="gold-card"><h3>750 Proba</h3><p id="p750" class="gold-text">Yuklanmoqda...</p></div>
-        <div class="gold-card"><h3>585 Proba</h3><p id="p585" class="gold-text">Yuklanmoqda...</p></div>
-        <div class="gold-card"><h3>550 Proba</h3><p id="p550" class="gold-text">Yuklanmoqda...</p></div>
+<body class="flex flex-col items-center p-4">
+
+    <div class="w-full max-width-[480px] max-w-md">
+        <header class="py-6 text-center">
+            <h1 class="text-2xl font-bold gold-text">Oltin Narxi (1g / UZS)</h1>
+            <p class="text-sm text-gray-400">Markaziy Bank va Bozor Kursi (2026)</p>
+        </header>
+
+        <div class="grid grid-cols-2 gap-3 mb-8">
+            <div class="card gold-border">
+                <span class="text-xs uppercase text-gray-400">999 Proba</span>
+                <div id="p999" class="text-xl font-bold gold-text mt-1">1 965 800</div>
+            </div>
+            <div class="card gold-border">
+                <span class="text-xs uppercase text-gray-400">750 Proba</span>
+                <div id="p750" class="text-xl font-bold gold-text mt-1">1 474 350</div>
+            </div>
+            <div class="card gold-border">
+                <span class="text-xs uppercase text-gray-400">585 Proba</span>
+                <div id="p585" class="text-xl font-bold gold-text mt-1">1 150 000</div>
+            </div>
+            <div class="card gold-border">
+                <span class="text-xs uppercase text-gray-400">550 Proba</span>
+                <div id="p550" class="text-xl font-bold gold-text mt-1">1 081 200</div>
+            </div>
+        </div>
+
+        <div class="card gold-bg border border-yellow-900/50">
+            <h2 class="text-lg font-bold gold-text mb-4 text-center">Oltin Kalkulyatori</h2>
+            
+            <label class="text-xs text-gray-400 uppercase">Og'irligi (grammda)</label>
+            <input type="number" id="weightInput" placeholder="Masalan: 5.1" 
+                class="w-full bg-[#0b0e11] border border-gray-700 rounded-lg p-3 mt-1 mb-4 focus:border-[#f0b90b] outline-none">
+
+            <label class="text-xs text-gray-400 uppercase">Proba Tanlang</label>
+            <select id="probaSelect" class="w-full bg-[#0b0e11] border border-gray-700 rounded-lg p-3 mt-1 mb-6">
+                <option value="1965830">999 (Sof oltin)</option>
+                <option value="1474372">750 (Italiya)</option>
+                <option value="1150010">585 (Rossiya)</option>
+                <option value="1081206">550 (Oddiy)</option>
+            </select>
+
+            <div class="text-center py-4 bg-black/30 rounded-xl">
+                <span class="text-gray-400 text-sm">Jami Summa:</span>
+                <div class="text-3xl font-bold text-green-500 mt-1"><span id="resultDisplay">0</span> UZS</div>
+            </div>
+        </div>
+        
+        <footer class="mt-8 text-center text-xs text-gray-500">
+            © 2026 Oltin.uz - Narxlar har kuni yangilanadi
+        </footer>
     </div>
 
-    <div class="bg-[#1a1a1a] p-6 rounded-xl border border-gray-700">
-        <h2 class="text-xl mb-4 text-[#d4af37]">Oltin Kalkulyatori</h2>
-        <input type="number" id="weight" placeholder="Gramm kiriting" class="w-full p-3 bg-black border border-gray-600 rounded mb-4 text-white">
-        <select id="proba-select" class="w-full p-3 bg-black border border-gray-600 rounded mb-4 text-white">
-            <option value="999">999 (24K)</option>
-            <option value="750">750 (18K)</option>
-            <option value="585">585 (14K)</option>
-            <option value="550">550 (13K)</option>
-        </select>
-        <div class="text-2xl font-bold text-center mt-4">Jami: <span id="total-price" class="text-green-500">0</span> UZS</div>
-    </div>
+    <script>
+        const weightInput = document.getElementById('weightInput');
+        const probaSelect = document.getElementById('probaSelect');
+        const resultDisplay = document.getElementById('resultDisplay');
 
-    <script src="script.js"></script>
+        function calculate() {
+            const grams = parseFloat(weightInput.value) || 0;
+            const pricePerGram = parseFloat(probaSelect.value);
+            const total = grams * pricePerGram;
+            
+            resultDisplay.innerText = Math.round(total).toLocaleString('uz-UZ');
+        }
+
+        weightInput.addEventListener('input', calculate);
+        probaSelect.addEventListener('change', calculate);
+    </script>
 </body>
-</html>
+                </html>
+                    
