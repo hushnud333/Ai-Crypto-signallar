@@ -155,3 +155,41 @@
 </body>
                                                    </html>
     
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oltin Narxi - Uzbekistan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0f0f0f; color: white; font-family: sans-serif; }
+        .gold-card { background: #1a1a1a; border: 1px solid #d4af37; border-radius: 12px; padding: 20px; text-align: center; }
+        .gold-text { color: #d4af37; font-weight: bold; font-size: 1.5rem; }
+    </style>
+</head>
+<body class="p-6">
+    <h1 class="text-3xl font-bold text-center mb-8 text-[#d4af37]">Oltin Narxi (1g / UZS)</h1>
+    
+    <div class="grid grid-cols-2 gap-4 mb-10">
+        <div class="gold-card"><h3>999 Proba</h3><p id="p999" class="gold-text">Yuklanmoqda...</p></div>
+        <div class="gold-card"><h3>750 Proba</h3><p id="p750" class="gold-text">Yuklanmoqda...</p></div>
+        <div class="gold-card"><h3>585 Proba</h3><p id="p585" class="gold-text">Yuklanmoqda...</p></div>
+        <div class="gold-card"><h3>550 Proba</h3><p id="p550" class="gold-text">Yuklanmoqda...</p></div>
+    </div>
+
+    <div class="bg-[#1a1a1a] p-6 rounded-xl border border-gray-700">
+        <h2 class="text-xl mb-4 text-[#d4af37]">Oltin Kalkulyatori</h2>
+        <input type="number" id="weight" placeholder="Gramm kiriting" class="w-full p-3 bg-black border border-gray-600 rounded mb-4 text-white">
+        <select id="proba-select" class="w-full p-3 bg-black border border-gray-600 rounded mb-4 text-white">
+            <option value="999">999 (24K)</option>
+            <option value="750">750 (18K)</option>
+            <option value="585">585 (14K)</option>
+            <option value="550">550 (13K)</option>
+        </select>
+        <div class="text-2xl font-bold text-center mt-4">Jami: <span id="total-price" class="text-green-500">0</span> UZS</div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
